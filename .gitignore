@@ -1,0 +1,25 @@
+
+# Py3.13 артефакты
+__pycache__/
+*.py[cod]
+*$py.class
+# Virtual envs
+.venv/
+env/
+venv/
+# WSL2/Win11 кэш и системные
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+# Docker
+docker-compose.override.yml
+*.env
+.docker/
+.vscode/
+*.code-workspace
+
+
+#
+**/downloads
+downloads/

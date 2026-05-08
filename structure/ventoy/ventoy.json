@@ -1,0 +1,28 @@
+{
+  "control": [
+    { "VTOY_DEFAULT_MENU_MODE": "1" },
+    { "VTOY_FILT_DOT_UNDERSCORE_FILE": "1" },
+    { "VTOY_MAX_SEARCH_LEVEL": "5" },
+    { "VTOY_WIN11_BYPASS_CHECK": "1" },
+    { "VTOY_WIN11_BYPASS_NRO": "1" },
+    { "VTOY_DEFAULT_KBD_LAYOUT": "RUSSIAN" }
+  ],
+  "theme": {
+    "file": "/ventoy/theme/hex-arch/theme.txt",
+    "gfxmode": "max",
+    "display_mode": "GUI",
+    "ventoy_left": "3%",
+    "ventoy_top": "97%",
+    "ventoy_color": "#10a1d8",
+    "fonts": [
+      "/ventoy/theme/hex-arch/Alverata_W01_PE_Bd_It_16.pf2",
+      "/ventoy/theme/hex-arch/terminus-14.pf2"
+    ]
+  },
+  "menu_alias": [
+    { "image": "/ISO/Win", "alias": "Windows ISO/" },
+    { "image": "/ISO/WinPE", "alias": "WinPE ISO/" },
+    { "image": "/ISO/Utils", "alias": "Utilities ISO/" },
+    { "image": "/ISO/_Archive", "alias": "Archive/" }
+  ]
+}
