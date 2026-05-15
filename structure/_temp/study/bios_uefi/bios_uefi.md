@@ -122,3 +122,18 @@ graph TD
 ```
 
 
+
+[MAIN] 📊 **РЕЗУЛЬТАТЫ ИССЛЕДОВАНИЙ**
+
+### 🔹 CORE: Фундамент BIOS/UEFI для ремонта
+| Тема | Ключевые факты (2024-2026) | Практическое применение |
+|------|---------------------------|------------------------|
+| **BIOS vs UEFI** | Legacy BIOS: 16-bit, MBR, текстовый, нет драйверов. UEFI: 32/64-bit, GPT, GUI, встроенные драйверы, Secure Boot, сетевая загрузка. | UEFI доминирует (>95% устройств с 2015). Диагностика идёт через `Hardware Monitor`/`Event Log`. MBR/Legacy нужен только для старых ПК. |
+| **Разновидности/Вендоры** | AMI (Aptio V, AMIBIOS), InsydeH2O (ноутбуки), Phoenix/Award (legacy). Слой UI: ASUS UEFI, HP BIOS Setup, Dell UEFI, Lenovo ThinkSetup. | Кнопки входа: `F2/Del` (AMI/ASUS/Dell), `F10` (HP), `Novo` (Lenovo). Меню отличаются, но структура `Boot/Security/Advanced/Main` едина. |
+| **Совместимость** | Прошивки привязаны к `Model + Board Revision`. Несовместимость → кирпич. Одинаковый процессор ≠ одинаковая плата. | Всегда проверять `wmic baseboard get product,manufacturer,version`. Использовать ТОЛЬКО файлы с оф. сайта производителя. |
+| **Настройки для диагностики/оптимизации** | `Boot Order`, `Secure Boot`, `TPM`, `SATA Mode (AHCI/RAID)`, `Virtualization`, `Fast Boot`, `CPU C/P-States`, `Fan Curve`, `Event Log`. | AHCI vs RAID влияет на видимость диска в PE. Fast Boot мешает входу в BIOS. Event Log хранит коды ошибок до ОС. Fan/C-states → перегрев/тормоза. |
+| **Софт для работы** | `RWEverything` (read-only диагностика), `UEFITool` (анализ образов), `HWiNFO64` (датчики через ACPI), вендорные флешеры (EZ Flash/Q-Flash/M-Flash). | Избегать `AMIBCP`/моддинга без опыта. PE-среда (Strelec) — основной инструмент. `chipsec` (Python) — для продвинутого анализа безопасности. |
+| **Алгоритмы работы с образами** | Dump (SPI-программатор или `flashrom` в Linux) → Backup → Verify (SHA256) → Modify (только для диагностики) → Flash (в UEFI Shell/BIOS utility) → Validate. | Для ремонта: **только backup + официальная прошивка**. Моддинг образов → риск кирпича 15-30%. Алгоритм: 1. Бэкап 2. Хеш 3. Прошивка 4. Load Defaults 5. Тест. |
+| **Стартовый набор образов (Ventoy)** | `WinPE Strelec 2026`, `Ubuntu Live`, `MemTest86+`, `Hiren's BootCD PE`, `Parted Magic` (платно, есть аналоги), `UBCD`. | Strelec — база (драйверы, диагностика, NTFS/ReFS). MemTest86+ — RAM. Ubuntu/Linux — восстановление загрузчика, проверка ФС, `testdisk`. |
+
+---
