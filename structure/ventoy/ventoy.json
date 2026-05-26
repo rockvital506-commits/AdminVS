@@ -1,12 +1,30 @@
 {
   "control": {
-    "VTOY_DEFAULT_MENU_MODE": "0",
-    "VTOY_FILT_DOT_UNDERSCORE_FILE": "1",
-    "VTOY_MAX_SEARCH_LEVEL": "2",
     "VTOY_WIN11_BYPASS_CHECK": "1",
+    
     "VTOY_WIN11_BYPASS_NRO": "1",
+    
+    "VTOY_PART_SUPPORT": "1",
+    
+    "VTOY_DEFAULT_MENU_MODE": "0",
+    
+    "VTOY_FILT_DOT_UNDERSCORE_FILE": "1",
+    
+    "VTOY_MAX_SEARCH_LEVEL": "2",
+    
+    "VTOY_EXCLUDE_PATH": [
+      "System Volume Information", 
+      "$RECYCLE.BIN", 
+      "WPSettings.dat",
+      "IndexerVolumeGuid",
+      "desktop.ini"
+    ],
+    
+    "VTOY_MENU_TIMEOUT": "-1",
+    
     "VTOY_DEFAULT_KBD_LAYOUT": "RUSSIAN",
-    "VTOY_EXCLUDE_PATH": ["/TOOLS", "/_temp"]
+    
+    "VTOY_DEFAULT_REBOOT": "0"
   },
 
   "theme": {
@@ -20,19 +38,5 @@
       "/ventoy/theme/hex-arch/Alverata_W01_PE_Bd_It_16.pf2",
       "/ventoy/theme/hex-arch/terminus-14.pf2"
     ]
-  },
-
-  "menu_alias": [
-    { "image": "/ISO/Win", "alias": "🪟 Windows Images" },
-    { "image": "/ISO/WinPE", "alias": "🛠️ WinPE Live" },
-    { "image": "/ISO/Utils", "alias": "🔧 Utilities ISO" },
-    { "image": "/ISO/_Archive", "alias": "📦 Archive (Old)" }
-  ],
-
-  "menu_class": [
-    { "image": "/ISO/Win/*.iso", "class": "Windows" },
-    { "image": "/ISO/WinPE/*.iso", "class": "WinPE" },
-    { "image": "/ISO/Utils/*.iso", "class": "Utility" }
-  ]
+  }
 }
-
