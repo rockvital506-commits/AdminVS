@@ -3,9 +3,9 @@
 
 # Win_Android_connectors
 + Quick_Share
-+ WiFi FTP Server                       ftp://192.168.3.3:2221
++ WiFi FTP Server                       ftp://192.168.3.3:2221   ftp://192.168.137.253:2221
 - TECNO_PC_Connection
-+ Scrcpy
++ Scrcpy                                192.168.137.253:5555
 # Bluetooth
 - Bluetooth_Driver_Installer
 - BluetoothView
@@ -20,7 +20,8 @@
 + DiskGenius
 
 
-
+Ventoy 1.1.10
+DGEng6201821_x64
 
 
 

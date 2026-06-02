@@ -1,0 +1,28 @@
+{
+  "control": [
+    { "VTOY_DEFAULT_MENU_MODE":        "0" },
+    { "VTOY_FILT_DOT_UNDERSCORE_FILE": "1" },
+    { "VTOY_SORT_CASE_SENSITIVE":      "0" },
+    { "VTOY_MAX_SEARCH_LEVEL":         "max" },
+    { "VTOY_MENU_TIMEOUT":             "-1" },
+    { "VTOY_DEFAULT_KBD_LAYOUT":       "QWERTY_USA" },
+    { "VTOY_SECONDARY_BOOT_MENU":      "1" },
+    { "VTOY_SECONDARY_TIMEOUT":        "15" },
+    { "VTOY_WIN11_BYPASS_CHECK":       "1" },
+    { "VTOY_WIN11_BYPASS_NRO":         "1" },
+    { "VTOY_WIN_CACHE_DISABLE":        "1" }
+  ],
+  "control_legacy": [
+    { "VTOY_DEFAULT_MENU_MODE":        "0" },
+    { "VTOY_FILT_DOT_UNDERSCORE_FILE": "1" },
+    { "VTOY_SORT_CASE_SENSITIVE":      "0" },
+    { "VTOY_MAX_SEARCH_LEVEL":         "max" },
+    { "VTOY_MENU_TIMEOUT":             "-1" },
+    { "VTOY_DEFAULT_KBD_LAYOUT":       "QWERTY_USA" },
+    { "VTOY_SECONDARY_BOOT_MENU":      "1" },
+    { "VTOY_SECONDARY_TIMEOUT":        "15" },
+    { "VTOY_WIN11_BYPASS_CHECK":       "1" },
+    { "VTOY_WIN11_BYPASS_NRO":         "1" },
+    { "VTOY_WIN_CACHE_DISABLE":        "1" }
+  ]
+}

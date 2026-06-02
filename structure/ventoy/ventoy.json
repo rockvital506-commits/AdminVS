@@ -1,42 +1,34 @@
 {
-  "control": {
-    "VTOY_WIN11_BYPASS_CHECK": "1",
-    
-    "VTOY_WIN11_BYPASS_NRO": "1",
-    
-    "VTOY_PART_SUPPORT": "1",
-    
-    "VTOY_DEFAULT_MENU_MODE": "0",
-    
-    "VTOY_FILT_DOT_UNDERSCORE_FILE": "1",
-    
-    "VTOY_MAX_SEARCH_LEVEL": "2",
-    
-    "VTOY_EXCLUDE_PATH": [
-      "System Volume Information", 
-      "$RECYCLE.BIN", 
-      "WPSettings.dat",
-      "IndexerVolumeGuid",
-      "desktop.ini"
-    ],
-    
-    "VTOY_MENU_TIMEOUT": "-1",
-    
-    "VTOY_DEFAULT_KBD_LAYOUT": "RUSSIAN",
-    
-    "VTOY_DEFAULT_REBOOT": "0"
-  },
-
+  "control": [
+    { "VTOY_MENU_LANGUAGE":            "en_US" },
+    { "VTOY_DEFAULT_KBD_LAYOUT":       "QWERTY_USA" },
+    { "VTOY_DEFAULT_MENU_MODE":        "0" },
+    { "VTOY_TREE_VIEW_MENU_STYLE":     "1" },
+    { "VTOY_FILT_DOT_UNDERSCORE_FILE": "1" },
+    { "VTOY_SORT_CASE_SENSITIVE":      "0" },
+    { "VTOY_MAX_SEARCH_LEVEL":         "max" },
+    { "VTOY_MENU_TIMEOUT":             "-1" },
+    { "VTOY_SECONDARY_BOOT_MENU":      "1" },
+    { "VTOY_SECONDARY_TIMEOUT":        "15" },
+    { "VTOY_WIN11_BYPASS_CHECK":       "1" },
+    { "VTOY_WIN11_BYPASS_NRO":         "1" },
+    { "VTOY_WIN_CACHE_DISABLE":        "1" },
+    { "VTOY_VHD_NO_WARNING":           "1" }
+  ],
   "theme": {
-    "file": "/ventoy/theme/hex-arch/theme.txt",
-    "gfxmode": "max",
+    "file":         "/ventoy/theme/hex-arch/theme.txt",
+    "gfxmode":      "max",
     "display_mode": "GUI",
-    "ventoy_left": "3%",
-    "ventoy_top": "97%",
+    "ventoy_left":  "3%",
+    "ventoy_top":   "97%",
     "ventoy_color": "#10a1d8",
     "fonts": [
       "/ventoy/theme/hex-arch/Alverata_W01_PE_Bd_It_16.pf2",
       "/ventoy/theme/hex-arch/terminus-14.pf2"
     ]
+  },
+  "theme_legacy": {
+    "display_mode": "CLI",
+    "gfxmode":      "1024x768"
   }
 }
