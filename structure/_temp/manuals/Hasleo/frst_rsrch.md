@@ -1,0 +1,85 @@
+
+весь функционал бекапов/клонов в хеслео бекап для их хранения, восстановления на родной и чужой станции, создания виртуальных дисков для родной и чужих станций
+
+
+
+
+Программа Hasleo Backup Suite предоставляет полный спектр инструментов для резервного копирования, клонирования и работы с образами дисков. Основные возможности распределены по специализированным модулям: [1] 
+## Резервное копирование (Бэкапы)
+
+* Системный бэкап (System Backup): Автоматически собирает все скрытые и загрузочные разделы (EFI, MSR, Recovery), необходимые для запуска Windows. [2, 3] 
+* Бэкап дисков/разделов (Disk/Partition Backup): Позволяет выбрать конкретные физические накопители или логические тома для создания посекторного или стандартного образа. [2, 3] 
+* Файловый бэкап (File Backup): Создает резервную копию конкретных папок или файлов по выбору пользователя. [2] 
+* Режимы копирования: Поддерживаются полный (Full), инкрементальный (Incremental) и дифференциальный (Differential) типы резервирования. [1] 
+* Автоматизация: Встроенный планировщик задач по расписанию и триггерам (например, при подключении определенного USB-накопителя). [4, 5] 
+* Безопасность и оптимизация: Сжатие образов (4 уровня), шифрование данных по алгоритму AES-128/256, дедупликация для экономии места, а также проверка целостности архивов. [6, 7, 8] 
+
+## Клонирование (Прямой перенос)
+
+* Системный клон (System Clone): Перенос работающей операционной системы Windows на другой накопитель (например, при переходе с HDD на SSD) без потери данных.
+* Клон диска (Disk Clone): Полноценное дублирование структуры всей разметки и данных с одного физического накопителя на другой.
+* Клон раздела (Partition Clone): Посекторное или блочное копирование одного выбранного тома на другой диск.
+* Дельта-клонирование (Delta Clone): Уникальная технология, копирующая только изменившиеся блоки данных, что многократно ускоряет процесс повторного клонирования.
+* Конвертация на лету: Возможность преобразования стиля разметки диска из MBR в GPT и наоборот прямо во время процесса клонирования. [1, 9, 10, 11, 12, 13] 
+
+## Хранение образов
+Резервные копии сохраняются в виде единых файлов-образов с собственным расширением .DBI. В качестве хранилища поддерживаются: [2, 7, 14, 15] 
+
+* Внутренние жесткие диски и SSD (SATA, NVMe)
+* Внешние накопители (USB, Thunderbolt, внешние боксы)
+* Сетевые папки и сетевые хранилища (NAS) по протоколам SMB/Транспортные шары
+
+## Восстановление на родной и чужой станции
+
+* На родной ПК: Восстановление поврежденной ОС или файлов можно запустить непосредственно из интерфейса Windows. При невозможности загрузки используется предварительно созданный WinPE Emergency Disk (аварийная загрузочная флешка). [16, 17, 18] 
+* На чужую станцию (Universal Restore): В Hasleo реализована функция универсального восстановления (Universal Restore). При разворачивании бэкапа системы на компьютер с совершенно другой аппаратной конфигурацией (другой процессор, чипсет, материнская плата), программа адаптирует загрузочные параметры Windows, что предотвращает появление «синего экрана смерти» (BSOD) из-за несовместимости драйверов. Также поддерживается сетевое развертывание на множество сторонних ПК через PXE-сервер. [16, 19] 
+
+## Создание виртуальных дисков (Монтирование образов)
+
+* Функция Mount/Unmount Image: Встроенный инструмент в разделе «Tools» позволяет смонтировать любой созданный файл образа .DBI (как системы, так и отдельных дисков) в качестве виртуального локального диска в проводнике Windows.
+* Для родной станции: Вы можете просматривать архив, открывать и копировать оттуда отдельные файлы без выполнения полного отката системы. Доступен режим Mount as writable (монтирование с возможностью записи), однако все внесенные изменения будут временными и сбросятся после размонтирования.
+* Для чужой станции / Переносимость: Физический файл .DBI можно перенести на любой другой ПК с установленной Hasleo Backup Suite, открыть его через функцию «Browse image» и точно так же смонтировать как виртуальный диск для извлечения данных.
+* Интеграция с Windows To Go: С помощью дочерней утилиты Hasleo WinToUSB системный бэкап .DBI можно напрямую преобразовать в полноценную портативную ОС на флешке, которая будет загружаться на любом стороннем компьютере. [1, 4, 15, 20, 21] 
+
+Уточните, планируете ли вы перенос системы на другой ПК или вам требуется настроить автоматическое резервное копирование по сети? Я могу составить пошаговую инструкцию.
+
+[1] https://www.hasleo.com
+[2] [https://www.comss.ru](https://www.comss.ru/page.php?id=15982)
+[3] [https://www.white-windows.ru](https://www.white-windows.ru/hasleo-backup-suite-interesnyj-analog-easeus-todo-backup/)
+[4] [https://www.wilderssecurity.com](https://www.wilderssecurity.com/threads/hasleo-backup-suite.449122/page-3)
+[5] [https://hasleo-backup-suite-free.ru.uptodown.com](https://hasleo-backup-suite-free.ru.uptodown.com/windows)
+[6] [https://www.easyuefi.com](https://www.easyuefi.com/backup-software/resource/deduplication-saves-storage-space.html)
+[7] [https://www.comss.ru](https://www.comss.ru/page.php?id=15982)
+[8] [https://www.easyuefi.com](https://www.easyuefi.com/backup-software/tutorial/system-backup.html)
+[9] [https://www.youtube.com](https://www.youtube.com/watch?v=KQF-ufBnI8U&t=8)
+[10] [https://www.easyuefi.com](https://www.easyuefi.com/backup-software/resource/free-windows-10-cloning-software.html)
+[11] [https://www.easyuefi.com](https://www.easyuefi.com/backup-software/tutorial/disk-clone.html)
+[12] [https://www.easyuefi.com](https://www.easyuefi.com/backup-software/resource/clone-data-from-one-hard-drive-to-another.html)
+[13] [https://www.elevenforum.com](https://www.elevenforum.com/t/hasleo-backup-suite.16189/)
+[14] [https://hasleo-backup-suite-free.en.uptodown.com](https://hasleo-backup-suite-free.en.uptodown.com/windows)
+[15] [https://www.easyuefi.com](https://www.easyuefi.com/wintousb/resource/create-windows-to-go-from-windows-backup-image.html)
+[16] [https://www.easyuefi.com](https://www.easyuefi.com/backup-software/resource/migrate-system-image-to-different-computer.html)
+[17] [https://www.elevenforum.com](https://www.elevenforum.com/t/how-to-use-a-hasleo-system-backup-file-to-restore-pc.32383/)
+[18] [https://www.easyuefi.com](https://www.easyuefi.com/backup-software/resource/clone-data-from-one-hard-drive-to-another.html)
+[19] [https://www.easyuefi.com](https://www.easyuefi.com/backup-software/resource/restore-multiple-system-using-pxe.html)
+[20] [https://www.easyuefi.com](https://www.easyuefi.com/backup-software/tutorial/mount-unmount-backup-image.html)
+[21] [https://www.easyuefi.com](https://www.easyuefi.com/forums/thread-3397.html)
+
+
+
+
+какие ещё есть утилиты от этого производителя/экосистемы хеслео и для чего они?
+
+какие из них имеют бесплатные версии? чем бесплатный функционал отличается от платного? какие из них портативные?
+
+
+
+
+
+
+
+
+
+
+
+
