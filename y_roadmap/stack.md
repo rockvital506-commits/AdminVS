@@ -17,11 +17,16 @@
 
 
 # Partition_Managers
-+ DiskGenius
+
+
++ DiskGenius(DGEng6201821_x64)
++ HasleoBackupSuiteFree(v5.4.2.5.)
++ DMDE(dmde-4-4-4-842-win64-gui)
++ rescuezilla-2.6.2-64bit.resolute.iso
 
 
 Ventoy 1.1.10
-DGEng6201821_x64
+
 
 
 
