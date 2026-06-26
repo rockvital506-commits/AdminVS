@@ -26,10 +26,10 @@
 
 .EXAMPLE
     # Явное указание флешки:
-    powershell -ExecutionPolicy Bypass -File "backup_critical_data.ps1" -Destination "E:"
+    powershell -ExecutionPolicy Bypass -File "backup_critical_data1.ps1" -Destination "D:"
 
     # Автоопределение флешки:
-    powershell -ExecutionPolicy Bypass -File "backup_critical_data.ps1"
+    powershell -ExecutionPolicy Bypass -File "backup_critical_data1.ps1"
 #>
 
 [CmdletBinding()]
@@ -1089,3 +1089,67 @@ Write-Host "  ├── Environment\            Переменные окруж�
 Write-Host "  ├── DevConfigs\             .gitconfig, .wslconfig, VS Code, WinTerminal," -ForegroundColor Gray
 Write-Host "  │                           kubectl, AWS, Azure, Terraform, Ansible..." -ForegroundColor Gray
 Write-Host "  └── backup_log.txt          Полный лог операции`n" -ForegroundColor Gray
+
+
+
+
+# ОШИБКА:
+# PS C:\Users\Пользователь\Desktop\TEMP\AdminVS\structure\Data\ManuScripts\CLD_WIN11_Migration> powershell -ExecutionPolicy Bypass -File "backup_critical_data.ps1" -Destination "D:"
+# C:\Users\Пользователь\Desktop\TEMP\AdminVS\structure\Data\ManuScripts\CLD_WIN11_Migration\backup_critical_data.ps1:91 з
+# нак:26
+# + if ($Destination -eq "") {
+# +                          ~
+# Отсутствует закрывающий знак "}" в блоке операторов или определении типа.
+# C:\Users\Пользователь\Desktop\TEMP\AdminVS\structure\Data\ManuScripts\CLD_WIN11_Migration\backup_critical_data.ps1:105
+# знак:125
+# + ... ѕР±РѕРґРЅРѕ: $([math]::Round($RemovableDrive.FreeSpace/1GB,1)) Р“Р‘)"
+# +                                                                        ~
+# Непредвиденная лексема ")" в выражении или операторе.
+# C:\Users\Пользователь\Desktop\TEMP\AdminVS\structure\Data\ManuScripts\CLD_WIN11_Migration\backup_critical_data.ps1:108
+# знак:21
+# +         Write-Fail "РџСѓС‚СЊ '$Destination' РЅРµРґРѕСЃС‚СѓРїРµРЅ."
+# +                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Непредвиденная лексема "РџСѓС‚СЊ '$Destination' РЅРµРґРѕСЃС‚СѓРїРµРЅ."
+#         Exit 1
+#     }
+#     Write-Ok "Р¦РµР»РµРІРѕР№" в выражении или операторе.
+# C:\Users\Пользователь\Desktop\TEMP\AdminVS\structure\Data\ManuScripts\CLD_WIN11_Migration\backup_critical_data.ps1:308
+# знак:57
+# + $LicLines.Add("  Р›РР¦Р•РќР—РРћРќРќР«Р• РљР›Р®Р§Р вЂ” СЌРєСЃРїРѕСЂ ...
+# +                                                         ~
+# Отсутствует ")" в вызове метода.
+# C:\Users\Пользователь\Desktop\TEMP\AdminVS\structure\Data\ManuScripts\CLD_WIN11_Migration\backup_critical_data.ps1:308
+# знак:58
+# + ...   Р›РР¦Р•РќР—РРћРќРќР«Р• РљР›Р®Р§Р вЂ” СЌРєСЃРїРѕСЂС‚ $DateStamp")
+# +                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Непредвиденная лексема "СЌРєСЃРїРѕСЂС‚ $DateStamp")
+# $LicLines.Add("  РҐР РђРќРРўР¬ Р’" в выражении или операторе.
+# C:\Users\Пользователь\Desktop\TEMP\AdminVS\structure\Data\ManuScripts\CLD_WIN11_Migration\backup_critical_data.ps1:319
+# знак:65
+# +         if ($Extra) { $script:LicLines.Add("  РРЅС„Рѕ : $Extra") }
+# +                                                                 ~
+# Непредвиденная лексема ")" в выражении или операторе.
+# C:\Users\Пользователь\Desktop\TEMP\AdminVS\structure\Data\ManuScripts\CLD_WIN11_Migration\backup_critical_data.ps1:319
+# знак:67
+# +         if ($Extra) { $script:LicLines.Add("  РРЅС„Рѕ : $Extra") }
+# +                                                                   ~
+# Непредвиденная лексема "}" в выражении или операторе.
+# C:\Users\Пользователь\Desktop\TEMP\AdminVS\structure\Data\ManuScripts\CLD_WIN11_Migration\backup_critical_data.ps1:323
+# знак:5
+# +     }
+# +     ~
+# Непредвиденная лексема "}" в выражении или операторе.
+# C:\Users\Пользователь\Desktop\TEMP\AdminVS\structure\Data\ManuScripts\CLD_WIN11_Migration\backup_critical_data.ps1:324
+# знак:1
+# + }
+# + ~
+# Непредвиденная лексема "}" в выражении или операторе.
+# C:\Users\Пользователь\Desktop\TEMP\AdminVS\structure\Data\ManuScripts\CLD_WIN11_Migration\backup_critical_data.ps1:330
+# знак:18
+# + $LicLines.Add("в”Ђв”Ђв”Ђв”Ђ WINDOWS в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ ...
+# +                  ~
+# Отсутствует ")" в вызове метода.
+# Выданы сообщения не обо всех ошибках синтаксического анализа.  Исправьте перечисленные в сообщениях ошибки и повторите
+# попытку.
+#     + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+#     + FullyQualifiedErrorId : MissingEndCurlyBrace

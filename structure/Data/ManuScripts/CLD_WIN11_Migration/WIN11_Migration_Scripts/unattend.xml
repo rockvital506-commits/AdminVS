@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<unattend xmlns="urn:schemas-microsoft-com:unattend">
+
+    <!-- PASS 1: generalize — разрешение многократного Sysprep -->
+    <settings pass="generalize">
+        <component name="Microsoft-Windows-Security-SPP-UX"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <SkipRearm>1</SkipRearm>
+        </component>
+    </settings>
+
+    <!-- PASS 2: oobeSystem — первый запуск на новом железе -->
+    <settings pass="oobeSystem">
+
+        <!-- Локализация системы -->
+        <component name="Microsoft-Windows-International-Core"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <InputLocale>0419:00000419</InputLocale>
+            <SystemLocale>ru-RU</SystemLocale>
+            <UILanguage>ru-RU</UILanguage>
+            <UserLocale>ru-RU</UserLocale>
+        </component>
+
+        <!-- Автоматический пропуск экранов OOBE -->
+        <component name="Microsoft-Windows-Shell-Setup"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <OOBE>
+                <HideEULAPage>true</HideEULAPage>
+                <HideLocalUserPage>true</HideLocalUserPage>
+                <HideOEMRegistrationPage>true</HideOEMRegistrationPage>
+                <HideOnlineAccountPage>true</HideOnlineAccountPage>
+                <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
+                <NetworkLocation>Work</NetworkLocation>
+                <ProtectYourPC>3</ProtectYourPC>
+            </OOBE>
+
+            <!-- АВТОМАТИЧЕСКОЕ УНИЧТОЖЕНИЕ СТРОИТЕЛЬНОГО ПРОФИЛЯ Admin -->
+            <FirstLogonCommands>
+                <!-- Шаг 1: Пауза для завершения загрузки профиля клиента -->
+                <SynchronousCommand wcm:action="add">
+                    <Order>1</Order>
+                    <CommandLine>cmd.exe /c timeout /t 10 /nobreak</CommandLine>
+                    <Description>Ожидание завершения инициализации профиля</Description>
+                </SynchronousCommand>
+                <!-- Шаг 2: Удаление учётной записи Admin из SAM -->
+                <SynchronousCommand wcm:action="add">
+                    <Order>2</Order>
+                    <CommandLine>cmd.exe /c net user Admin /delete</CommandLine>
+                    <Description>Удаление временной учётной записи Admin</Description>
+                </SynchronousCommand>
+                <!-- Шаг 3: Физическое стирание папки профиля Admin с диска -->
+                <SynchronousCommand wcm:action="add">
+                    <Order>3</Order>
+                    <CommandLine>cmd.exe /c rmdir /s /q C:\Users\Admin</CommandLine>
+                    <Description>Физическое удаление папки C:\Users\Admin</Description>
+                </SynchronousCommand>
+            </FirstLogonCommands>
+        </component>
+    </settings>
+</unattend>

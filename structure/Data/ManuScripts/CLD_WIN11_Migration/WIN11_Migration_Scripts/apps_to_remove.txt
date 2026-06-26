@@ -1,0 +1,41 @@
+# === apps_to_remove.txt — Маски Win32-программ для удаления ===
+# Строки с '#' игнорируются. Поддерживаются wildcards (*).
+
+# --- Блок 1. Мусорный софт старого железа (ОЕМ-вендоры) ---
+*Armoury Crate*
+*MSI Center*
+*Dragon Center*
+*Gigabyte Control Center*
+*Ryzen Master*
+*Intel Extreme Tuning*
+*Lenovo Vantage*
+*HP Support Assistant*
+*MyASUS*
+*Dell SupportAssist*
+*Acer Care Center*
+
+# --- Блок 2. Сторонние антивирусы и крипто-драйверы (блокируют Sysprep) ---
+*Kaspersky*
+*Avast*
+*Dr.Web*
+*CryptoPro*
+*КриптоПро*
+*ESET*
+*Malwarebytes*
+*Norton*
+*McAfee*
+*Bitdefender*
+
+# --- Блок 3. Встроенный мусор Windows 11 (препятствует запечатыванию) ---
+*Xbox*
+*Bing*
+*Zune*
+*People*
+*Skype*
+*OfficeHub*
+*Solitaire*
+*FeedbackHub*
+*MixedReality*
+*Widgets*
+*Cortana*
+*Microsoft Teams*
