@@ -1,0 +1,83 @@
+# === КОНФИГУРАЦИЯ МАСОК ДЛЯ УДАЛЕНИЯ ПРОГРАММ ===
+# Формат: Одна маска на строку. Символ '#' — комментарий
+# Поддерживаются wildcard: * и ?
+# Расположение: [Флешка]\apps_to_remove.txt
+# Кодировка: UTF-8 без BOM
+
+# 1. Мусорный софт вендоров железа (удалять ВСЕГДА)
+Armoury Crate
+MSI Center
+Dragon Center
+Gigabyte Control Center
+Ryzen Master
+Intel Extreme Tuning
+Lenovo Vantage
+HP Support Assistant
+MyASUS
+ASUS GPU Tweak
+EVGA Precision
+
+# 2. Антивирусы и криптография (КРИТИЧНО для Sysprep)
+Kaspersky
+Avast
+AVG
+Dr.Web
+ESET
+Norton
+McAfee
+CryptoPro
+КриптоПро
+ViPNet
+
+# 3. Встроенный мусор Windows 11 (блокирует Sysprep)
+Microsoft.Xbox
+Microsoft.Zune
+Microsoft.People
+Microsoft.SkypeApp
+Microsoft.MicrosoftOfficeHub
+Microsoft.MicrosoftSolitaireCollection
+Microsoft.GetHelp
+Microsoft.Getstarted
+Microsoft.Messaging
+Microsoft.MixedReality.Portal
+Microsoft.WindowsFeedbackHub
+Microsoft.WindowsAlarms
+Microsoft.BingWeather
+Microsoft.BingNews
+Microsoft.BingSports
+Microsoft.BingFinance
+Microsoft.ZuneMusic
+Microsoft.ZuneVideo
+Microsoft.WindowsMaps
+Microsoft.WindowsPhone
+Microsoft.OneConnect
+Microsoft.CommsPhone
+Microsoft.ConnectivityStore
+Microsoft.Print3D
+Microsoft.Microsoft3DViewer
+Microsoft.MSPaint
+Microsoft.ScreenSketch
+Microsoft.Wallet
+Microsoft.YourPhone
+Microsoft.MixedReality.Portal
+Microsoft.WindowsCamera
+Microsoft.GamingApp
+Microsoft.Todos
+Microsoft.PowerAutomateDesktop
+Microsoft.OutlookForWindows
+Microsoft.Copilot
+
+# 4. Телеметрия и реклама
+Microsoft.Windows.Cortana
+Microsoft.Advertising.Xaml
+Microsoft.MicrosoftStickyNotes
+Microsoft.Office.OneNote
+Microsoft.MicrosoftEdge
+Microsoft.MicrosoftEdge.Stable
+Microsoft.MicrosoftEdge.DevToolsClient
+
+# 5. Облачные сервисы (по желанию)
+Microsoft.OneDrive
+Dropbox
+Google Drive
+Yandex.Disk

@@ -1,0 +1,60 @@
+# === Файл конфигурации для зачистки зомби-компонентов в профиле клиента ===
+# Синтаксис: Тип|Относительный_Путь (Строки с '#' игнорируются)
+# Тип: Folder (AppData) или Registry (HKCU\Software)
+# Кодировка: UTF-8 (без BOM)
+
+# --- Блок 1. Корпоративные и пользовательские VPN-клиенты ---
+Folder|Local\Cisco
+Folder|Roaming\Cisco
+Folder|Local\WireGuard
+Folder|Local\OpenVPN
+Folder|Roaming\OpenVPN
+Folder|Local\Fortinet
+Folder|Roaming\Fortinet
+Folder|Local\CheckPoint
+Folder|Roaming\CheckPoint
+Folder|Local\Palo Alto Networks
+Folder|Roaming\Palo Alto Networks
+Registry|OpenVPN-GUI
+Registry|WireGuard
+Registry|Fortinet
+Registry|CheckPoint
+
+# --- Блок 2. Популярные антивирусы и защитное ПО ---
+Folder|Local\Kaspersky Lab
+Folder|Roaming\Kaspersky Lab
+Folder|Local\Avast Software
+Folder|Roaming\Avast Software
+Folder|Local\DrWeb
+Folder|Roaming\DrWeb
+Folder|Local\ESET
+Folder|Roaming\ESET
+Folder|Local\Malwarebytes
+Folder|Roaming\Malwarebytes
+Registry|KasperskyLab
+Registry|Avast Software
+Registry|Doctor Web
+Registry|ESET
+Registry\Malwarebytes
+
+# --- Блок 3. Эмуляторы Android и виртуализация ---
+Folder|Local\BlueStacks
+Folder|Roaming\BlueStacks
+Folder|Local\BlueStacks_nxt
+Folder|Local\Nox
+Folder|Roaming\Nox
+Folder|Local\MEmu
+Folder|Roaming\MEmu
+Folder|Local\LDPlayer
+Folder|Local\LDPlayer9
+Registry|AppDataLow\Software\BlueStacks
+Registry|Nox
+Registry|MEmu
+Registry|Leadshine\LDPlayer
+
+# --- Блок 4. Мусорные кэши и телеметрия (Специфика 25H2) ---
+Folder|Local\Microsoft\Windows\Explorer
+Folder|Local\Microsoft\Windows\INetCache
+Folder|Local\Microsoft\Windows\WER
+Registry|Microsoft\Windows\CurrentVersion\Explorer\FeatureUsage
+Registry|Microsoft\Windows\CurrentVersion\ContentDeliveryManager
