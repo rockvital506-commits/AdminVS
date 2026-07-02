@@ -1,0 +1,192 @@
+{
+  "metadata": {
+    "version": "2.0",
+    "description": "Конфигурация блокировки фоновой активности для Golden Image",
+    "target_os": "Windows 10/11 Pro",
+    "execution_context": "Audit Mode (Administrator)"
+  },
+  "services": {
+    "windows_update": {
+      "description": "Службы Windows Update",
+      "priority": "critical",
+      "items": [
+        {
+          "name": "wuauserv",
+          "method": "service",
+          "startup_type": "Disabled",
+          "reason": "Главная служба обновлений"
+        },
+        {
+          "name": "UsoSvc",
+          "method": "service",
+          "startup_type": "Disabled",
+          "reason": "Update Orchestrator Service"
+        },
+        {
+          "name": "WaaSMedicSvc",
+          "method": "registry",
+          "startup_type": "Disabled",
+          "registry_path": "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\WaaSMedicSvc",
+          "registry_value": 4,
+          "reason": "Windows Update Medic Service (защищена TrustedInstaller)"
+        },
+        {
+          "name": "DoSvc",
+          "method": "registry",
+          "startup_type": "Disabled",
+          "registry_path": "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\DoSvc",
+          "registry_value": 4,
+          "reason": "Delivery Optimization (защищена TrustedInstaller)"
+        },
+        {
+          "name": "BITS",
+          "method": "service",
+          "startup_type": "Manual",
+          "reason": "Background Intelligent Transfer Service (не Disabled, нужен для других задач)"
+        }
+      ]
+    },
+    "store_appx": {
+      "description": "Microsoft Store и AppX",
+      "priority": "critical",
+      "items": [
+        {
+          "name": "InstallService",
+          "method": "registry",
+          "startup_type": "Disabled",
+          "registry_path": "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\InstallService",
+          "registry_value": 4,
+          "reason": "Install Service (защищена TrustedInstaller)"
+        },
+        {
+          "name": "AppXSvc",
+          "method": "registry",
+          "startup_type": "Disabled",
+          "registry_path": "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\AppXSvc",
+          "registry_value": 4,
+          "reason": "AppX Deployment Service (защищена TrustedInstaller)"
+        },
+        {
+          "name": "ClipSVC",
+          "method": "registry",
+          "startup_type": "Disabled",
+          "registry_path": "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\ClipSVC",
+          "registry_value": 4,
+          "reason": "Client License Service (защищена TrustedInstaller)"
+        },
+        {
+          "name": "LicenseManager",
+          "method": "service",
+          "startup_type": "Disabled",
+          "reason": "Windows License Manager Service"
+        }
+      ]
+    },
+    "telemetry": {
+      "description": "Телеметрия и диагностика",
+      "priority": "high",
+      "items": [
+        {
+          "name": "DiagTrack",
+          "method": "service",
+          "startup_type": "Disabled",
+          "reason": "Connected User Experiences and Telemetry"
+        },
+        {
+          "name": "dmwappushservice",
+          "method": "service",
+          "startup_type": "Disabled",
+          "reason": "WAP Push Message Routing Service"
+        },
+        {
+          "name": "WerSvc",
+          "method": "service",
+          "startup_type": "Disabled",
+          "reason": "Windows Error Reporting Service"
+        }
+      ]
+    },
+    "indexing": {
+      "description": "Индексация и кэширование",
+      "priority": "medium",
+      "items": [
+        {
+          "name": "WSearch",
+          "method": "service",
+          "startup_type": "Disabled",
+          "reason": "Windows Search"
+        },
+        {
+          "name": "SysMain",
+          "method": "service",
+          "startup_type": "Disabled",
+          "reason": "SysMain (SuperFetch)"
+        }
+      ]
+    }
+  },
+  "registry_keys": {
+    "delivery_optimization": {
+      "description": "Блокировка Delivery Optimization через политики",
+      "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization",
+      "items": [
+        {
+          "name": "DODownloadMode",
+          "value": 0,
+          "type": "DWord",
+          "reason": "Запрет P2P-загрузки"
+        },
+        {
+          "name": "AllowCloudDownload",
+          "value": 0,
+          "type": "DWord",
+          "reason": "Запрет облачной загрузки"
+        }
+      ]
+    },
+    "onedrive": {
+      "description": "Отключение OneDrive",
+      "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\OneDrive",
+      "items": [
+        {
+          "name": "DisableFileSyncNGSC",
+          "value": 1,
+          "type": "DWord",
+          "reason": "Отключение синхронизации"
+        },
+        {
+          "name": "PreventOneDriveFromStarting",
+          "value": 1,
+          "type": "DWord",
+          "reason": "Запрет автозапуска"
+        }
+      ]
+    }
+  },
+  "scheduled_tasks": {
+    "windows_update": {
+      "description": "Задачи Windows Update",
+      "paths": ["\\Microsoft\\Windows\\WindowsUpdate\\*"]
+    },
+    "setup": {
+      "description": "Задачи настройки системы",
+      "paths": ["\\Microsoft\\Windows\\Setup\\*"]
+    },
+    "application_experience": {
+      "description": "Сбор данных о приложениях",
+      "paths": ["\\Microsoft\\Windows\\Application Experience\\*"]
+    },
+    "customer_experience": {
+      "description": "Программа улучшения качества",
+      "paths": ["\\Microsoft\\Windows\\Customer Experience Improvement Program\\*"]
+    },
+    "autochk": {
+      "description": "Проверка диска при загрузке",
+      "paths": ["\\Microsoft\\Windows\\Autochk\\*"]
+    },
+    "disk_diagnostic": {
+      "description": "Диагностика диска",
+      "paths": ["\\Microsoft\\Windows\\DiskDiagnostic\\*"]
+    }
+  }
+}
