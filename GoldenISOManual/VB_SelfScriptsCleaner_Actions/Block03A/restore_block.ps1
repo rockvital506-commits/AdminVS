@@ -4,11 +4,10 @@ $script = @'
     Откат блокировок фоновой активности из резервной копии
 .DESCRIPTION
     Восстанавливает исходное состояние служб, задач и реестра из block_backup.json
-    КРИТИЧНО: Для защищённых служб (DoSvc, AppXSvc, ClipSVC, InstallService, WaaSMedicSvc)
-    используется реестр, а не Set-Service.
+    КРИТИЧНО: Для защищённых служб используется реестр, а не Set-Service.
 .NOTES
     Запускать от имени Администратора
-    Требует: block_backup.json (создается автоматически при apply_block.ps1)
+    Требует: block_backup.json
     ВАЖНО: Файл должен быть сохранён в UTF-8 с BOM
 #>
 
@@ -18,13 +17,18 @@ param(
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$ScriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
+
+if ($MyInvocation.MyCommand.Definition) {
+    $ScriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
+} else {
+    $ScriptPath = $PWD.Path
+}
+
 $BackupPath = Join-Path $ScriptPath $BackupFile
 
-# Проверка резервной копии
 if (-not (Test-Path $BackupPath)) {
-    Write-Host "[X] Резервная копия '$BackupPath' не найдена!" -ForegroundColor Red
-    Write-Host "    Запустите apply_block.ps1 с параметром -CreateBackup для создания копии" -ForegroundColor Yellow
+    Write-Host "[X] Резервная копия '${BackupPath}' не найдена!" -ForegroundColor Red
+    Write-Host "    Запустите apply_block.ps1 для создания копии" -ForegroundColor Yellow
     pause
     Exit 1
 }
@@ -66,26 +70,48 @@ if ($Backup.defender -and $Backup.defender.PSObject.Properties.Count -gt 0) {
     Write-Host "[~] Defender: данные не найдены в backup" -ForegroundColor Gray
 }
 
+# Восстановление Tamper Protection
+$TamperPath = "HKLM:\SOFTWARE\Microsoft\Windows Defender\Features"
+if (Test-Path $TamperPath) {
+    try {
+        Set-ItemProperty -Path $TamperPath -Name "TamperProtection" -Value 1 -Type DWord -Force -ErrorAction Stop
+        Write-Host "[+] TamperProtection восстановлен" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "[!] TamperProtection: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+}
+
+# Удаление Group Policy для Defender
+$PolicyPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender"
+if (Test-Path $PolicyPath) {
+    try {
+        Remove-Item -Path $PolicyPath -Recurse -Force -ErrorAction Stop
+        Write-Host "[+] Group Policy Defender удалена" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "[!] Group Policy Defender: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+}
+
 # ==============================================================================
-# ВОССТАНОВЛЕНИЕ СЛУЖБ (С УЧЁТОМ МЕТОДА)
+# ВОССТАНОВЛЕНИЕ СЛУЖБ
 # ==============================================================================
 Write-Host "`n=== ВОССТАНОВЛЕНИЕ СЛУЖБ ===" -ForegroundColor Cyan
 
 foreach ($Service in $Backup.services) {
     try {
         if ($Service.method -eq "registry" -and $Service.registry_path) {
-            # КРИТИЧНО: Для защищённых служб используем реестр
             $StartValue = if ($Service.original_start -eq "Disabled") { 4 } elseif ($Service.original_start -eq "Manual") { 3 } elseif ($Service.original_start -eq "Automatic") { 2 } else { 3 }
             
             if (Test-Path $Service.registry_path) {
                 Set-ItemProperty -Path $Service.registry_path -Name "Start" -Value $StartValue -Type DWord -Force -ErrorAction Stop
-                Write-Host "[+] $($Service.name) -> Start=$StartValue (Registry)" -ForegroundColor Green
+                Write-Host "[+] $($Service.name) -> Start=${StartValue} (Registry)" -ForegroundColor Green
             } else {
                 Write-Host "[!] $($Service.name): путь реестра не найден" -ForegroundColor Yellow
             }
         }
         else {
-            # Обычные службы через Set-Service
             Set-Service -Name $Service.name -StartupType $Service.original_start -ErrorAction Stop
             Write-Host "[+] $($Service.name) -> $($Service.original_start) (Set-Service)" -ForegroundColor Green
         }
@@ -93,26 +119,24 @@ foreach ($Service in $Backup.services) {
     catch {
         Write-Host "[X] $($Service.name): $($_.Exception.Message)" -ForegroundColor Red
         
-        # Fallback на реестр
         Write-Host "    Попытка fallback через реестр..." -ForegroundColor Yellow
         $RegPath = "HKLM:\SYSTEM\CurrentControlSet\Services\$($Service.name)"
         if (Test-Path $RegPath) {
             $StartValue = if ($Service.original_start -eq "Disabled") { 4 } elseif ($Service.original_start -eq "Manual") { 3 } elseif ($Service.original_start -eq "Automatic") { 2 } else { 3 }
             Set-ItemProperty -Path $RegPath -Name "Start" -Value $StartValue -Type DWord -Force -ErrorAction SilentlyContinue
-            Write-Host "[+] $($Service.name) -> Start=$StartValue (Registry fallback)" -ForegroundColor Green
+            Write-Host "[+] $($Service.name) -> Start=${StartValue} (Registry fallback)" -ForegroundColor Green
         }
     }
 }
 
 # ==============================================================================
-# ВОССТАНОВЛЕНИЕ РЕЕСТРА (С УЧЁТОМ ТИПА)
+# ВОССТАНОВЛЕНИЕ РЕЕСТРА
 # ==============================================================================
 Write-Host "`n=== ВОССТАНОВЛЕНИЕ РЕЕСТРА ===" -ForegroundColor Cyan
 
 foreach ($RegEntry in $Backup.registry) {
     foreach ($Value in $RegEntry.values) {
         try {
-            # Определяем тип значения
             $RegType = if ($Value.type -eq "DWord") { [Microsoft.Win32.RegistryValueKind]::DWord } else { [Microsoft.Win32.RegistryValueKind]::String }
             
             Set-ItemProperty -Path $RegEntry.path -Name $Value.name -Value $Value.value -Type $RegType -Force -ErrorAction Stop
@@ -125,7 +149,7 @@ foreach ($RegEntry in $Backup.registry) {
 }
 
 # ==============================================================================
-# СБРОС ПОЛИТИК (если они были изменены)
+# СБРОС ПОЛИТИК
 # ==============================================================================
 Write-Host "`n=== СБРОС ПОЛИТИК ===" -ForegroundColor Cyan
 
@@ -138,16 +162,16 @@ foreach ($Path in $PolicyPaths) {
     if (Test-Path $Path) {
         try {
             Remove-Item -Path $Path -Recurse -Force -ErrorAction Stop
-            Write-Host "[+] Удалена политика: $Path" -ForegroundColor Green
+            Write-Host "[+] Удалена политика: ${Path}" -ForegroundColor Green
         }
         catch {
-            Write-Host "[!] $Path : $($_.Exception.Message)" -ForegroundColor Yellow
+            Write-Host "[!] ${Path}: $($_.Exception.Message)" -ForegroundColor Yellow
         }
     }
 }
 
 # ==============================================================================
-# ВОССТАНОВЛЕНИЕ ЗАДАЧ ПЛАНИРОВЩИКА
+# ВОССТАНОВЛЕНИЕ ЗАДАЧ
 # ==============================================================================
 Write-Host "`n=== ВОССТАНОВЛЕНИЕ ЗАДАЧ ===" -ForegroundColor Cyan
 

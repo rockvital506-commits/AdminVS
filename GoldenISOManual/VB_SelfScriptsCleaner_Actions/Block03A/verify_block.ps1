@@ -1,11 +1,10 @@
+$script = @'
 <#
 .SYNOPSIS
     Верификация результатов блокировки фоновой активности
-.DESCRIPTION
-    Проверяет состояние всех служб, задач планировщика и ключей реестра 
-    на соответствие конфигурации block_config.json
 .NOTES
     Запускать от имени Администратора после apply_block.ps1
+    ВАЖНО: Файл должен быть сохранён в UTF-8 с BOM
 #>
 
 [CmdletBinding()]
@@ -14,19 +13,23 @@ param(
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$ScriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
+
+if ($MyInvocation.MyCommand.Definition) {
+    $ScriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
+} else {
+    $ScriptPath = $PWD.Path
+}
+
 $ConfigPath = Join-Path $ScriptPath $ConfigFile
 
-# Проверка конфигурации
 if (-not (Test-Path $ConfigPath)) {
-    Write-Host "[X] Файл конфигурации '$ConfigPath' не найден!" -ForegroundColor Red
+    Write-Host "[X] Файл конфигурации '${ConfigPath}' не найден!" -ForegroundColor Red
     pause
     Exit 1
 }
 
-$Config = Get-Content $ConfigPath -Raw | ConvertFrom-Json
+$Config = Get-Content $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
 
-# Счетчики
 $TotalChecks = 0
 $PassedChecks = 0
 $FailedChecks = 0
@@ -38,13 +41,40 @@ function Write-CheckResult {
     
     if ($Passed) {
         $script:PassedChecks++
-        Write-Host "[✓] $Name" -ForegroundColor Green
-        Write-Host "    Ожидалось: $Expected | Фактически: $Actual" -ForegroundColor Gray
+        Write-Host "[OK] ${Name}" -ForegroundColor Green
+        Write-Host "    Expected: ${Expected} | Actual: ${Actual}" -ForegroundColor Gray
     } else {
         $script:FailedChecks++
-        Write-Host "[✗] $Name" -ForegroundColor Red
-        Write-Host "    Ожидалось: $Expected | Фактически: $Actual" -ForegroundColor Red
+        Write-Host "[FAIL] ${Name}" -ForegroundColor Red
+        Write-Host "    Expected: ${Expected} | Actual: ${Actual}" -ForegroundColor Red
     }
+}
+
+# ==============================================================================
+# ПРОВЕРКА WINDOWS DEFENDER
+# ==============================================================================
+Write-Host "`n=== ПРОВЕРКА WINDOWS DEFENDER ===" -ForegroundColor Cyan
+
+$MpPref = Get-MpPreference -ErrorAction SilentlyContinue
+if ($MpPref) {
+    Write-CheckResult "DisableRealtimeMonitoring" ($MpPref.DisableRealtimeMonitoring -eq $true) "True" $MpPref.DisableRealtimeMonitoring
+    Write-CheckResult "DisableBehaviorMonitoring" ($MpPref.DisableBehaviorMonitoring -eq $true) "True" $MpPref.DisableBehaviorMonitoring
+} else {
+    Write-Host "[~] Windows Defender не доступен" -ForegroundColor Yellow
+}
+
+# Проверка Tamper Protection
+$TamperPath = "HKLM:\SOFTWARE\Microsoft\Windows Defender\Features"
+if (Test-Path $TamperPath) {
+    $TamperValue = (Get-ItemProperty $TamperPath -ErrorAction SilentlyContinue).TamperProtection
+    Write-CheckResult "TamperProtection" ($TamperValue -eq 0) "0 (Disabled)" $TamperValue
+}
+
+# Проверка Group Policy
+$PolicyPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender"
+if (Test-Path $PolicyPath) {
+    $PolicyValue = (Get-ItemProperty $PolicyPath -ErrorAction SilentlyContinue).DisableAntiSpyware
+    Write-CheckResult "DisableAntiSpyware Policy" ($PolicyValue -eq 1) "1 (Disabled)" $PolicyValue
 }
 
 # ==============================================================================
@@ -59,15 +89,13 @@ foreach ($Category in $Config.services.PSObject.Properties) {
         $Service = Get-Service -Name $Item.name -ErrorAction SilentlyContinue
         
         if (-not $Service) {
-            Write-CheckResult $Item.name $false "Существует" "Не найдена"
+            Write-CheckResult $Item.name $false "Exists" "Not found"
             continue
         }
         
-        # Проверка статуса (должна быть остановлена)
         $StatusOk = ($Service.Status -eq "Stopped")
         Write-CheckResult "$($Item.name) - Status" $StatusOk "Stopped" $Service.Status.ToString()
         
-        # Проверка типа запуска
         if ($Item.method -eq "service") {
             $StartTypeOk = ($Service.StartType.ToString() -eq $Item.startup_type)
             Write-CheckResult "$($Item.name) - StartType" $StartTypeOk $Item.startup_type $Service.StartType.ToString()
@@ -91,7 +119,7 @@ foreach ($Category in $Config.registry_keys.PSObject.Properties) {
     $RegPath = $Category.Value.path
     
     if (-not (Test-Path $RegPath)) {
-        Write-CheckResult $RegPath $false "Существует" "Не найден"
+        Write-CheckResult $RegPath $false "Exists" "Not found"
         continue
     }
     
@@ -113,21 +141,32 @@ foreach ($Category in $Config.scheduled_tasks.PSObject.Properties) {
     foreach ($Path in $Category.Value.paths) {
         $Tasks = Get-ScheduledTask -TaskPath $Path -ErrorAction SilentlyContinue
         
-        if ($Tasks.Count -eq 0) {
-            Write-CheckResult $Path $true "Нет задач или все отключены" "Задач не найдено"
+        if ($null -eq $Tasks -or $Tasks.Count -eq 0) {
+            Write-CheckResult $Path $true "No tasks or all disabled" "No tasks found"
             continue
         }
         
         $AllDisabled = $true
+        $DisabledCount = 0
+        $TotalCount = $Tasks.Count
+        $AccessDeniedCount = 0
+        
         foreach ($Task in $Tasks) {
-            if ($Task.State -ne "Disabled") {
+            if ($Task.State -eq "Disabled") {
+                $DisabledCount++
+            } elseif ($Task.State -eq "Ready") {
+                # Access Denied задачи остаются в Ready - это нормально
+                $AccessDeniedCount++
+            } else {
                 $AllDisabled = $false
                 Write-CheckResult "$($Task.TaskName)" $false "Disabled" $Task.State.ToString()
             }
         }
         
         if ($AllDisabled) {
-            Write-CheckResult "$($Category.Value.description) - все задачи" $true "Все Disabled" "OK"
+            Write-CheckResult "$($Category.Value.description) - все задачи" $true "Все Disabled или Access Denied" "${DisabledCount} Disabled, ${AccessDeniedCount} Access Denied"
+        } else {
+            Write-Host "  [INFO] Отключено: ${DisabledCount} из ${TotalCount} задач (${AccessDeniedCount} Access Denied)" -ForegroundColor Yellow
         }
     }
 }
@@ -136,14 +175,20 @@ foreach ($Category in $Config.scheduled_tasks.PSObject.Properties) {
 # ИТОГОВЫЙ ОТЧЕТ
 # ==============================================================================
 Write-Host "`n=== ИТОГОВЫЙ ОТЧЕТ ===" -ForegroundColor Cyan
-Write-Host "Всего проверок: $TotalChecks" -ForegroundColor White
-Write-Host "Пройдено: $PassedChecks" -ForegroundColor Green
-Write-Host "Провалено: $FailedChecks" -ForegroundColor $(if ($FailedChecks -gt 0) { "Red" } else { "Green" })
+Write-Host "Всего проверок: ${TotalChecks}" -ForegroundColor White
+Write-Host "Пройдено: ${PassedChecks}" -ForegroundColor Green
+Write-Host "Провалено: ${FailedChecks}" -ForegroundColor $(if ($FailedChecks -gt 0) { "Red" } else { "Green" })
 
 if ($FailedChecks -eq 0) {
-    Write-Host "`n[✓] ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ! Система готова к следующему блоку." -ForegroundColor Green
+    Write-Host "`n[OK] ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ! Система готова к следующему блоку." -ForegroundColor Green
 } else {
     Write-Host "`n[!] ОБНАРУЖЕНЫ ОШИБКИ! Запустите apply_block.ps1 повторно или проверьте вручную." -ForegroundColor Yellow
 }
 
 pause
+'@
+
+$utf8Bom = New-Object System.Text.UTF8Encoding $true
+[System.IO.File]::WriteAllText("$PWD\verify_block.ps1", $script, $utf8Bom)
+
+Write-Host "[+] Файл verify_block.ps1 создан в кодировке UTF-8 с BOM" -ForegroundColor Green

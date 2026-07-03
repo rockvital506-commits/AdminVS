@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "version": "2.0",
+    "version": "3.0",
     "description": "Конфигурация блокировки фоновой активности для Golden Image",
     "target_os": "Windows 10/11 Pro",
     "execution_context": "Audit Mode (Administrator)"
@@ -161,32 +161,80 @@
           "reason": "Запрет автозапуска"
         }
       ]
+    },
+    "defender_tamper": {
+      "description": "Отключение Tamper Protection Windows Defender",
+      "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows Defender\\Features",
+      "items": [
+        {
+          "name": "TamperProtection",
+          "value": 0,
+          "type": "DWord",
+          "reason": "Отключение защиты от изменений настроек Defender"
+        }
+      ]
+    },
+    "defender_policy": {
+      "description": "Отключение Windows Defender через Group Policy",
+      "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender",
+      "items": [
+        {
+          "name": "DisableAntiSpyware",
+          "value": 1,
+          "type": "DWord",
+          "reason": "Полное отключение Defender через политики"
+        }
+      ]
+    },
+    "defender_realtime": {
+      "description": "Отключение Real-Time Protection через политики",
+      "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection",
+      "items": [
+        {
+          "name": "DisableRealtimeMonitoring",
+          "value": 1,
+          "type": "DWord",
+          "reason": "Отключение мониторинга в реальном времени"
+        }
+      ]
     }
   },
   "scheduled_tasks": {
     "windows_update": {
       "description": "Задачи Windows Update",
-      "paths": ["\\Microsoft\\Windows\\WindowsUpdate\\*"]
+      "paths": [
+        "\\Microsoft\\Windows\\WindowsUpdate\\*"
+      ]
     },
     "setup": {
       "description": "Задачи настройки системы",
-      "paths": ["\\Microsoft\\Windows\\Setup\\*"]
+      "paths": [
+        "\\Microsoft\\Windows\\Setup\\*"
+      ]
     },
     "application_experience": {
       "description": "Сбор данных о приложениях",
-      "paths": ["\\Microsoft\\Windows\\Application Experience\\*"]
+      "paths": [
+        "\\Microsoft\\Windows\\Application Experience\\*"
+      ]
     },
     "customer_experience": {
       "description": "Программа улучшения качества",
-      "paths": ["\\Microsoft\\Windows\\Customer Experience Improvement Program\\*"]
+      "paths": [
+        "\\Microsoft\\Windows\\Customer Experience Improvement Program\\*"
+      ]
     },
     "autochk": {
       "description": "Проверка диска при загрузке",
-      "paths": ["\\Microsoft\\Windows\\Autochk\\*"]
+      "paths": [
+        "\\Microsoft\\Windows\\Autochk\\*"
+      ]
     },
     "disk_diagnostic": {
       "description": "Диагностика диска",
-      "paths": ["\\Microsoft\\Windows\\DiskDiagnostic\\*"]
+      "paths": [
+        "\\Microsoft\\Windows\\DiskDiagnostic\\*"
+      ]
     }
   }
 }

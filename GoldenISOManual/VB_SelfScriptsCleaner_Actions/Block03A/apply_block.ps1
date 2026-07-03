@@ -15,12 +15,20 @@ param(
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = "SilentlyContinue"
-$ScriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
+
+if ($MyInvocation.MyCommand.Definition) {
+    $ScriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
+} else {
+    $ScriptPath = $PWD.Path
+}
+
 $ConfigPath = Join-Path $ScriptPath $ConfigFile
 $LogFile = Join-Path $ScriptPath "block_log.txt"
 $BackupFile = Join-Path $ScriptPath "block_backup.json"
 
-# Проверка прав администратора
+Write-Host "[INFO] Script path: ${ScriptPath}" -ForegroundColor Gray
+Write-Host "[INFO] Config path: ${ConfigPath}" -ForegroundColor Gray
+
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
     Write-Host "[X] КРИТИЧНО: Запустите скрипт от имени Администратора!" -ForegroundColor Red
@@ -28,16 +36,15 @@ if (-not $isAdmin) {
     Exit 1
 }
 
-# Проверка конфигурации
 if (-not (Test-Path $ConfigPath)) {
-    Write-Host "[X] КРИТИЧНО: Файл конфигурации '$ConfigPath' не найден!" -ForegroundColor Red
+    Write-Host "[X] КРИТИЧНО: Файл конфигурации '${ConfigPath}' не найден!" -ForegroundColor Red
     pause
     Exit 1
 }
 
 try {
     $Config = Get-Content $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    Write-Host "[+] Конфигурация загружена: $ConfigPath" -ForegroundColor Green
+    Write-Host "[+] Конфигурация загружена: ${ConfigPath}" -ForegroundColor Green
 }
 catch {
     Write-Host "[X] Ошибка чтения конфигурации: $($_.Exception.Message)" -ForegroundColor Red
@@ -48,23 +55,57 @@ catch {
 function Write-Log {
     param([string]$Message, [string]$Color = "White")
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    $logEntry = "[$timestamp] $Message"
+    $logEntry = "[${timestamp}] ${Message}"
     Add-Content -Path $LogFile -Value $logEntry -Encoding UTF8
     Write-Host $logEntry -ForegroundColor $Color
 }
 
 # ==============================================================================
-# ШАГ 0: ВРЕМЕННОЕ ОТКЛЮЧЕНИЕ WINDOWS DEFENDER
+# ШАГ 0: ВРЕМЕННОЕ ОТКЛЮЧЕНИЕ WINDOWS DEFENDER (УСИЛЕННОЕ)
 # ==============================================================================
 Write-Log "=== ОТКЛЮЧЕНИЕ WINDOWS DEFENDER ===" "Yellow"
+
+# Метод 1: Через Set-MpPreference
 try {
     Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction Stop
     Set-MpPreference -DisableBehaviorMonitoring $true -ErrorAction Stop
     Set-MpPreference -DisableIOAVProtection $true -ErrorAction Stop
-    Write-Log "[+] Windows Defender Real-time Protection отключен" "Green"
+    Write-Log "[+] Defender: Set-MpPreference выполнен" "Green"
 }
 catch {
-    Write-Log "[!] Windows Defender: $($_.Exception.Message)" "Yellow"
+    Write-Log "[!] Defender: Set-MpPreference не сработал - $($_.Exception.Message)" "Yellow"
+}
+
+# Метод 2: Отключение Tamper Protection через реестр
+try {
+    $TamperPath = "HKLM:\SOFTWARE\Microsoft\Windows Defender\Features"
+    if (Test-Path $TamperPath) {
+        Set-ItemProperty -Path $TamperPath -Name "TamperProtection" -Value 0 -Type DWord -Force -ErrorAction Stop
+        Write-Log "[+] Defender: TamperProtection отключен через реестр" "Green"
+    }
+}
+catch {
+    Write-Log "[!] Defender: TamperProtection - $($_.Exception.Message)" "Yellow"
+}
+
+# Метод 3: Group Policy для полного отключения
+try {
+    $PolicyPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender"
+    if (-not (Test-Path $PolicyPath)) {
+        New-Item -Path $PolicyPath -Force | Out-Null
+    }
+    Set-ItemProperty -Path $PolicyPath -Name "DisableAntiSpyware" -Value 1 -Type DWord -Force -ErrorAction Stop
+    
+    $RealtimePath = "$PolicyPath\Real-Time Protection"
+    if (-not (Test-Path $RealtimePath)) {
+        New-Item -Path $RealtimePath -Force | Out-Null
+    }
+    Set-ItemProperty -Path $RealtimePath -Name "DisableRealtimeMonitoring" -Value 1 -Type DWord -Force -ErrorAction Stop
+    
+    Write-Log "[+] Defender: Group Policy отключен" "Green"
+}
+catch {
+    Write-Log "[!] Defender: Group Policy - $($_.Exception.Message)" "Yellow"
 }
 
 # ==============================================================================
@@ -81,7 +122,6 @@ if (-not $SkipBackup) {
         defender = @{}
     }
     
-    # Сохранение состояния служб С МЕТОДОМ
     foreach ($Category in $Config.services.PSObject.Properties) {
         foreach ($Item in $Category.Value.items) {
             $Service = Get-Service -Name $Item.name -ErrorAction SilentlyContinue
@@ -97,7 +137,6 @@ if (-not $SkipBackup) {
         }
     }
     
-    # Сохранение состояния реестра С ТИПОМ
     foreach ($Category in $Config.registry_keys.PSObject.Properties) {
         $RegPath = $Category.Value.path
         if (Test-Path $RegPath) {
@@ -117,7 +156,6 @@ if (-not $SkipBackup) {
         }
     }
     
-    # Сохранение состояния задач
     foreach ($Category in $Config.scheduled_tasks.PSObject.Properties) {
         foreach ($Path in $Category.Value.paths) {
             $Tasks = Get-ScheduledTask -TaskPath $Path -ErrorAction SilentlyContinue
@@ -131,7 +169,6 @@ if (-not $SkipBackup) {
         }
     }
     
-    # Сохранение состояния Defender
     $MpPref = Get-MpPreference -ErrorAction SilentlyContinue
     if ($MpPref) {
         $Backup.defender = @{
@@ -142,7 +179,7 @@ if (-not $SkipBackup) {
     }
     
     $Backup | ConvertTo-Json -Depth 10 | Out-File $BackupFile -Encoding UTF8
-    Write-Log "[+] Резервная копия создана: $BackupFile" "Green"
+    Write-Log "[+] Резервная копия создана: ${BackupFile}" "Green"
 }
 
 # ==============================================================================
@@ -160,12 +197,10 @@ foreach ($Category in $Config.services.PSObject.Properties) {
             Stop-Service -Name $Item.name -Force -ErrorAction SilentlyContinue
             
             if ($Item.method -eq "service") {
-                # Попытка через Set-Service
                 Set-Service -Name $Item.name -StartupType $Item.startup_type -ErrorAction Stop
                 Write-Log "[+] $($Item.name) -> $($Item.startup_type) (Set-Service)" "Green"
             }
             elseif ($Item.method -eq "registry") {
-                # Прямой метод через реестр
                 if (Test-Path $Item.registry_path) {
                     Set-ItemProperty -Path $Item.registry_path -Name "Start" -Value $Item.registry_value -Type DWord -Force -ErrorAction Stop
                     Write-Log "[+] $($Item.name) -> Start=$($Item.registry_value) (Registry)" "Green"
@@ -178,14 +213,13 @@ foreach ($Category in $Config.services.PSObject.Properties) {
         catch {
             Write-Log "[X] $($Item.name): ошибка - $($_.Exception.Message)" "Red"
             
-            # АВТОМАТИЧЕСКИЙ FALLBACK: если Set-Service не сработал, пробуем реестр
             if ($Item.method -eq "service") {
                 Write-Log "    Попытка fallback через реестр..." "Yellow"
                 $RegPath = "HKLM:\SYSTEM\CurrentControlSet\Services\$($Item.name)"
                 if (Test-Path $RegPath) {
                     $StartValue = if ($Item.startup_type -eq "Disabled") { 4 } elseif ($Item.startup_type -eq "Manual") { 3 } else { 2 }
                     Set-ItemProperty -Path $RegPath -Name "Start" -Value $StartValue -Type DWord -Force -ErrorAction SilentlyContinue
-                    Write-Log "[+] $($Item.name) -> Start=$StartValue (Registry fallback)" "Green"
+                    Write-Log "[+] $($Item.name) -> Start=${StartValue} (Registry fallback)" "Green"
                 }
             }
         }
@@ -204,7 +238,7 @@ foreach ($Category in $Config.registry_keys.PSObject.Properties) {
     
     if (-not (Test-Path $RegPath)) {
         New-Item -Path $RegPath -Force | Out-Null
-        Write-Log "[+] Создан раздел: $RegPath" "Green"
+        Write-Log "[+] Создан раздел: ${RegPath}" "Green"
     }
     
     foreach ($Item in $Category.Value.items) {
@@ -231,7 +265,7 @@ foreach ($Category in $Config.scheduled_tasks.PSObject.Properties) {
             $Tasks = Get-ScheduledTask -TaskPath $Path -ErrorAction SilentlyContinue
             
             if ($null -eq $Tasks -or $Tasks.Count -eq 0) {
-                Write-Log "[~] Задачи не найдены: $Path" "Gray"
+                Write-Log "[~] Задачи не найдены: ${Path}" "Gray"
             }
             else {
                 foreach ($Task in $Tasks) {
@@ -246,7 +280,7 @@ foreach ($Category in $Config.scheduled_tasks.PSObject.Properties) {
             }
         }
         catch {
-            Write-Log "[X] Ошибка пути $Path : $($_.Exception.Message)" "Red"
+            Write-Log "[X] Ошибка пути ${Path}: $($_.Exception.Message)" "Red"
         }
     }
 }
