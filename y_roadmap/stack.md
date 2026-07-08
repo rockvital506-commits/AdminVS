@@ -164,143 +164,48 @@ oНебольшая, но эффективная утилита, которая 
 
 
 
+# Режим разработчика
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock]
+"AllowDevelopmentWithoutDevLicense"=dword:00000001
+необходимо активировать на Этапе 2.2 (в режиме аудита с помощью Sophia Script)
+# Низкоуровневая структура накопителей и оптимизация
+Физические и Логические характеристики
+
 
 
 
 ====
 # собери информацию по лучшим практикам сущностям для оптимизации/отчистки систем. проанализируй и систематизируй собранную информацию. предложи что ещё можно/нужно добавить к спискам связки и направлений. составь таблицы (5-6 колонок, назначение колонок придумай сам учитывая контекст) в логическом порядке применения сущностей связок и утилит/скриптов с объявлением логики порядка , в таблице направлений рекомедуй топ 2-3 утилиты или ссылки на готовые скрипты/инструменты для каждого наименования.
 
-Сначала соберу актуальную информацию по лучшим практикам.Данных достаточно для полного и верифицированного ответа.
+<!-- Экранирование от MDM/Intune/Autopilot: Применяете команды отключения служб удаленного управления (DmEnrollmentSvc, WmpNetworkSvc) и прописываете блокирующие ключи в ветку реестра HKLM\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\MDM (параметр DisableMDM=1) и параметры Autopilot. -->
 
----
-
-## Логика порядка применения
-
-Порядок определяется **принципом зависимостей**: каждый последующий шаг предполагает, что предыдущий уже завершён и не будет перезаписан. Ключевые правила цепочки:
-
-> `Снимок → Заморозка фона → Очистка AppX → Обновления → Реестр HKLM → Default User → Глубокая очистка → Верификация → Sysprep`
-
-Нарушение порядка приводит к: восстановлению удалённых AppX через Store, перезаписи реестровых твиков Cumulative Update, сбою Sysprep на `PartialProductKey`.
-
----
-
-## Таблица А. Связка: логический порядок инструментов и скриптов
-
-| № | Этап (что происходит) | Инструмент / Скрипт | Зона ответственности | Режим применения | Риск пропуска / нарушения порядка |
-|---|---|---|---|---|---|
-| **0** | **Точка отсчёта: снимок ВМ** | VirtualBox Snapshot «Fresh Install» | Создание контрольной точки ДО любых изменений | Ручной, 1 раз | Нет точки отката — при сбое Sysprep потеря 3–6 часов работы |
-| **1** | **Заморозка фоновой активности** | `sc config` + `schtasks /Change /Disable` + PowerShell `Set-Service` | Остановка WU, Store, DoSvc, DiagTrack, телеметрия-задачи планировщика | Скрипт — автомат | Store восстановит удалённые AppX во время шага 2; WU подтянет CU и сломает порядок обновлений |
-| **2** | **Удаление Bloatware / AppX** | `Remove-AppxProvisionedPackage` (PowerShell) + BCUninstaller | Вырезание provisioned UWP-пакетов из образа для всех пользователей | Скрипт — автомат | Каждый лишний AppX с PartialProductKey = Fatal Error в Sysprep |
-| **3** | **Offline-обновления (.msu)** | `DISM /Add-Package` + `wusa.exe /quiet /norestart` | SSU → CU → .NET CU → Defender definitions через Shared Folder | Скрипт — полуавтомат | Без SSU первым — CU не установится; без обновлений до реестра — CU перезапишет твики |
-| **4** | **Твики реестра HKLM** | Sophia Script (HKLM-профиль) + `.reg`-файлы | Телеметрия, Copilot, Recall, Delivery Opt, SkipRearm=1, политики gpedit | Скрипт — по профилю | Без SkipRearm=1 — Sysprep падает на повторном запуске; без телеметрии — образ «звонит домой» |
-| **5** | **Настройка Default User (HKCU-шаблон)** | `reg load/unload HKLM\DU` + ручной `.reg` | Монтирование NTUSER.DAT, твики ContentDelivery, панель задач, тема | Скрипт + ручной контроль | Без этого шага каждый новый пользователь на клиенте получает «грязный» старт с рекламой |
-| **6** | **Глубокая очистка + WinSxS** | `DISM /Cleanup-Image /StartComponentCleanup /ResetBase` + PowerShell | WinSxS, Temp, SoftwareDistribution, логи событий, hiberfil, pagefile | Скрипт — автомат | Без /ResetBase образ на 3–8 ГБ тяжелее; после /ResetBase откат обновлений невозможен — только вперёд |
-| **7** | **Удаление гостевых дополнений ВМ** | `wmic product` / PowerShell `Get-WmiObject Win32_Product` | Вырезание VirtualBox Guest Additions из образа | Ручной | GA в образе = синий экран или зависание на реальном железе клиента |
-| **8** | **Финальная верификация** | `sfc /scannow` + `DISM /CheckHealth` + `Get-AppxProvisionedPackage` | Целостность ОС, отсутствие pending reboot, проверка AppX, SkipRearm | Скрипт — автомат | Пропуск верификации = риск Fatal Error в Sysprep без понятной причины |
-| **9** | **Снимок ВМ «Before Sysprep»** | VirtualBox Snapshot | Последняя точка отката перед необратимой операцией | Ручной, 1 раз | Нет возможности повторить Sysprep с другими параметрами без полного пересборки |
-| **10** | **Запечатывание (Sysprep)** | `sysprep /generalize /oobe /shutdown /unattend:unattend.xml` | Генерализация: удаление SID, аппаратной привязки, подготовка OOBE | Ручной — строго однократно | Повторный запуск ВМ после shutdown = повреждение образа; нарушение порядка шагов = Fatal Error |
-| **11** | **Захват образа WIM / ESD** | `DISM /Capture-Image /Compress:max` из WinPE / DiskGenius | Снятие финального WIM/ESD с холодного диска выключенной ВМ | Ручной из WinPE | Захват с «тёплого» диска = артефакты в образе; без `/Compress:max` = лишние 2–4 ГБ |
-
----
-
-## Таблица Б. Направления оптимизации: сущности, инструменты, ссылки
-
-| № | Направление (Сущность ОС) | Конкретные объекты воздействия | Эффект для образа и клиента | Топ-2/3 инструмента / ссылки на скрипты | Применимость к образу-болванке |
-|---|---|---|---|---|---|
-| **1** | **AppX / UWP provisioned пакеты** | Xbox*, Cortana, Widgets (WebExperience), Teams/Chat, BingNews, BingWeather, Zune*, People, Skype, MixedReality, Solitaire, FeedbackHub, OfficeHub | Главная причина сбоя Sysprep устранена; образ на 1–3 ГБ легче | 1. `Remove-AppxProvisionedPackage` (встроенный PowerShell) 2. [Win11Debloat](https://github.com/Raphire/Win11Debloat) — параметрический PS-скрипт 3. [Sophia Script](https://github.com/farag2/Sophia-Script-for-Windows) → `Uninstall-UWPApps` | ✅ Обязательно |
-| **2** | **Windows 11 AI-компоненты** | Recall (WindowsAI), Copilot (Shell), Windows AI Platform, BingSearch в поиске | Снижение фоновой нагрузки; блокировка утечки данных с клиентских ПК | 1. Реестр: `TurnOffWindowsAIFeatures=1`, `DisableAIDataAnalysis=1` 2. [Sophia Script](https://github.com/farag2/Sophia-Script-for-Windows) → функции Copilot/Recall 3. `DISM /Remove-Package` для WindowsAI | ✅ Обязательно (Win11 24H2+) |
-| **3** | **Телеметрия и CEIP** | DiagTrack, dmwappushservice, WerSvc, SQMClient, Customer Experience задачи планировщика | Полная блокировка телеметрии в образе; соответствие политикам ИБ | 1. [Sophia Script](https://github.com/farag2/Sophia-Script-for-Windows) → `DiagTrackService -Disable`, `DiagnosticDataLevel -Minimal` 2. [O&O ShutUp10++](https://www.oo-software.com/en/shutup10) — экспорт `.cfg` для тихого применения 3. Групповые политики: `gpedit.msc` → Computer Config → Admin Templates → DataCollection | ✅ Обязательно |
-| **4** | **Службы и автозагрузка** | WaaSMedicSvc, UsoSvc, DoSvc, InstallService (Store), XboxNetApiSvc, RetailDemo, PrintWorkflow, MixedRealityOpenXR | Освобождение 150–400 МБ RAM в простое; снижение DPC Latency | 1. [Autoruns](https://learn.microsoft.com/sysinternals/downloads/autoruns) (Sysinternals) — точечный ручной анализ 2. PowerShell `Set-Service -StartupType Disabled` по списку 3. [Sophia Script](https://github.com/farag2/Sophia-Script-for-Windows) → раздел Services | ✅ Обязательно |
-| **5** | **Планировщик задач (нежелательные триггеры)** | `\Microsoft\Windows\Customer Experience Improvement Program\*`, `\Autochk\*`, `\DiskDiagnostic\*`, `\Application Experience\*`, `\CloudExperienceHost\*` | Устранение фоновых «будильников» телеметрии и нежелательных обновлений | 1. `schtasks /Change /TN "путь\задача" /Disable` (батч/PS) 2. [Sophia Script](https://github.com/farag2/Sophia-Script-for-Windows) → `ScheduledTasks` секция 3. Autoruns → вкладка Scheduled Tasks | ✅ Обязательно |
-| **6** | **Реестр HKLM: конфиденциальность и реклама** | AllowTelemetry=0, DODownloadMode=0, DisableWindowsConsumerFeatures=1, DisableSoftLanding=1, TurnOffWindowsCopilot=1, SkipRearm=1, WER\Disabled=1 | Долгосрочная блокировка рекламы и телеметрии для всех будущих пользователей | 1. [Sophia Script](https://github.com/farag2/Sophia-Script-for-Windows) — покрывает 90% ключей 2. Кастомные `.reg`-файлы под проект (версионируемые в Git) 3. `gpedit.msc` → Local Computer Policy | ✅ Обязательно |
-| **7** | **Default User (HKCU-шаблон)** | ContentDeliveryManager (реклама), Start Layout, TaskBar (Chat=hide, Search=hide, Cortana=hide), тёмная тема, обои, Language/Locale | Все новые пользователи на клиентах получают чистый, настроенный рабочий стол | 1. `reg load HKLM\DU C:\Users\Default\NTUSER.DAT` → правка → `reg unload` 2. `<CopyProfile>true</CopyProfile>` в unattend.xml (альтернатива) 3. [Sophia Script](https://github.com/farag2/Sophia-Script-for-Windows) → запуск от DefaultUser профиля | ✅ Обязательно |
-| **8** | **WinSxS и компонентное хранилище** | Superseded компоненты после установки CU, старые версии обновлений | Образ на 2–8 ГБ легче; DISM /AnalyzeComponentStore подтверждает экономию | 1. `DISM /Online /Cleanup-Image /StartComponentCleanup /ResetBase` (необратимо — только на финальном образе) 2. `DISM /Online /Cleanup-Image /AnalyzeComponentStore` (анализ до) 3. PowerShell `Optimize-Volume -DriveLetter C -ReTrim` (для SSD) | ✅ Обязательно (после всех обновлений) |
-| **9** | **Временные файлы и артефакты сессии** | `%SystemRoot%\Temp\*`, `%SystemRoot%\SoftwareDistribution\Download\*`, `%TEMP%\*`, Prefetch, hiberfil.sys, pagefile.sys, `wevtutil` — очистка логов | Минимальный «след» сессии в образе; исключение персональных данных Admin | 1. PowerShell-скрипт (кастомный, 10 строк) — `Remove-Item` по путям 2. `wevtutil el \| ForEach {wevtutil cl $_}` — очистка всех журналов 3. `powercfg /hibernate off` → удаляет hiberfil.sys | ✅ Обязательно |
-| **10** | **BitLocker / Device Encryption** | Device Encryption (автовключается на Win11 24H2+ при TPM+SecureBoot) | Sysprep падает с ошибкой если шифрование активно на C: | 1. Параметры → Конфиденциальность → Шифрование устройства → Выкл 2. `manage-bde -off C:` + ожидание 100% расшифровки 3. Проверка: `manage-bde -status C:` → `Protection Status: Off` | ✅ Обязательно (Win11 24H2+) |
-| **11** | **Необязательные компоненты ОС** | Internet Explorer (Win10), Windows Media Player Legacy, XPS Viewer, MSXML 3.0, WorkFolders Client, Hello Face, Fax and Scan | Сокращение поверхности атаки; меньше legacy-кода в образе | 1. `DISM /Online /Disable-Feature /FeatureName:... /Remove` 2. `Get-WindowsOptionalFeature -Online` — инвентаризация 3. PowerShell `Disable-WindowsOptionalFeature -Online -FeatureName ...` | ✅ Рекомендуется |
-| **12** | **Драйверы: очистка виртуального железа** | VirtualBox Guest Additions, VirtIO drivers, SVGA-драйвер — всё, что специфично для гипервизора | Образ не зависает / не BSoD на реальном железе клиента | 1. `wmic product where "name like '%VirtualBox%'" call uninstall` 2. Диспетчер устройств → удаление устройств VBox 3. `pnputil /delete-driver` для INF-файлов GA | ✅ Обязательно перед Sysprep |
-| **13** | **Сетевой стек (базовая гигиена)** | NetBIOS over TCP/IP, LLMNR, IPv6 (если не нужен), SMBv1 | Снижение широковещательного шума в сети клиента; закрытие legacy-уязвимостей | 1. `Set-NetAdapterBinding` + реестровые ключи (встроенный PS) 2. `Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol` 3. [Sophia Script](https://github.com/farag2/Sophia-Script-for-Windows) → раздел Network | ✅ Рекомендуется |
-| **14** | **Файловая система и TRIM** | MFT оптимизация, SSD TRIM, отключение LastAccess timestamp | Максимальная скорость накопителя клиентского ПК после развёртывания | 1. `Optimize-Volume -DriveLetter C -ReTrim` (только SSD) 2. `fsutil behavior set disableLastAccess 1` 3. `Optimize-Volume -DriveLetter C -Defrag` (только HDD) | ✅ Рекомендуется |
-
-
-
-
+                                          actions_order.md
 
 ====
 # как гарантированно отключить TamperProtection с помощью RegistryFinder64? Дай инженерную инструкцию с однозначными комментариями. !В ответе должна быть только проверенная информация.
 
-Гарантированно отключить Tamper Protection с помощью RegistryFinder64 внутри работающей операционной системы (даже в режиме аудита) невозможно. Драйвер ядра WdFilter.sys заблокирует запись и выдаст ошибку Access Denied.
-Единственный проверенный инженерный метод получить 100% результат с помощью этой утилиты — провести автономное (офлайн) редактирование куста реестра, когда защитные механизмы целевой Windows не активны. [1] 
-Ниже представлена пошаговая техническая инструкция.
-------------------------------
-## Инженерная инструкция: Офлайн-отключение Tamper Protection через RegistryFinder64## Этап 1. Подготовка среды
-Для изоляции ОС от ее драйверов защиты необходимо загрузиться в альтернативную среду: [1] 
-
-   1. Создайте загрузочную флешку с WinPE (например, Strelec, Sergei Strelec WinPE) или используйте стандартный установочный носитель Windows.
-   2. Поместите портативную версию RegistryFinder64.exe на эту же флешку. [2] 
-   3. Загрузите целевой ПК с подготовленного накопителя.
-   * Примечание: Если используется установочный диск Windows, на экране выбора языка нажмите Shift + F10 для вызова командной строки, перейдите на флешку и запустите утилиту.
-   
-## Этап 2. Подключение (монтирование) куста реестра
-Так как целевая система не запущена, нужно вручную подключить файлы её реестра. [3] 
-
-   1. Запустите RegistryFinder64.exe с правами администратора в среде WinPE. [2] 
-   2. В верхнем меню выберите File -> Load Hive... [3] 
-   3. В открывшемся окне укажите путь к файлу SYSTEM неактивной ОС:
-   C:\Windows\System32\config\SYSTEM
-   (Внимание: в WinPE буква диска системы может измениться с C: на D: или E:, проверьте реальный объем диска). [3] 
-   4. Утилита запросит имя для подключаемой ветки. Введите: OFFLINE_SYS.
-   5. Повторите процедуру для файла SOFTWARE:
-   * File -> Load Hive... -> файл C:\Windows\System32\config\SOFTWARE.
-      * Имя для ветки: OFFLINE_SOFT. [3] 
-   
-## Этап 3. Модификация ключей (Прямое отключение)
-Вносить изменения необходимо в две ключевые службы. В автономном режиме Windows не сможет защитить эти ветки.
-## Шаг 3.1. Отключение в службе WinDefend
-
-   1. Перейдите по пути:
-   HKEY_LOCAL_MACHINE\OFFLINE_SYS\ControlSet001\Services\WinDefend
-   2. Найдите параметр TamperProtection (Тип: REG_DWORD).
-   3. Дважды кликните и установите значение 0 (Выключено).
-   4. Найдите параметр Start (Тип: REG_DWORD) в этой же папке WinDefend.
-   5. Установите значение 4 (Служба отключена), чтобы предотвратить инициализацию антивируса при старте. [4] 
-
-## Шаг 3.2. Сброс политик в ветке Features
-
-   1. Перейдите по пути:
-   HKEY_LOCAL_MACHINE\OFFLINE_SOFT\Microsoft\Windows Defender\Features
-   2. Найдите параметр TamperProtection (Тип: REG_DWORD).
-   3. Установите значение 0. [5] 
-
-## Этап 4. Выгрузка кустов (Сохранение изменений)
-Критически важный шаг. Если закрыть программу без выгрузки, изменения будут стерты, а файлы реестра могут повредиться. [6] 
-
-   1. В дереве реестра слева выделите созданную папку OFFLINE_SYS.
-   2. Выберите в меню File -> Unload Hive. Подтвердите действие.
-   3. Выделите папку OFFLINE_SOFT.
-   4. Выберите в меню File -> Unload Hive. Подтвердите действие.
-   5. Закройте Registry Finder и перезагрузите ПК в штатный режим (или продолжите работу в Audit Mode). [6] 
-
-------------------------------
-## Однозначные инженерные комментарии к параметрам
-
-* Контроль доступа: В офлайн-режиме Windows Security и дескрипторы безопасности (SACL/DACL), настроенные на учетную запись TrustedInstaller, игнорируются средой WinPE, что дает Registry Finder абсолютный приоритет на запись. [1] 
-* Параметр WinDefend\Start = 4: Ключевой триггер. Даже если Tamper Protection переведен в 0, при загрузке системы служба WinDefend может попытаться восстановить настройки на основе облачных политик. Значение 4 аппаратно запрещает запуск драйвера до загрузки основных компонентов.
-* Параметр ControlSet001: В неактивной системе изменения вносятся именно в ControlSet001. При загрузке ОС он автоматически станет текущим рабочим профилем CurrentControlSet.
-
-Если вам также требуется автоматизировать этот процесс для массового развертывания через Sysprep или сценарии DISM/MDT, сообщите об этом. Я предоставлю готовый .bat скрипт автоматического монтирования и правки кустов через стандартную консоль.
-
-[1] [https://www.tenforums.com](https://www.tenforums.com/tutorials/123792-turn-off-tamper-protection-microsoft-defender-antivirus-4.html)
-[2] https://registry-finder.com
-[3] [https://learn.microsoft.com](https://learn.microsoft.com/en-us/answers/questions/4143576/how-do-i-load-hives-in-my-windows-11-system)
-[4] [https://www.alteredsecurity.com](https://www.alteredsecurity.com/post/disabling-tamper-protection-and-other-defender-mde-components)
-[5] [https://learn.microsoft.com](https://learn.microsoft.com/en-us/answers/questions/2125728/cannot-disable-windows-security-this-setting-is-ma)
-[6] [https://qtechbabble.wordpress.com](https://qtechbabble.wordpress.com/2017/10/13/offline-windows-registry-hive-editing/)
-====
 
 
 
 
+Windows Answer File Generator (Онлайн-генератор или Windows SIM)Зачем нужен: Написание файла unattend.xml вручную с нуля часто приводит к синтаксическим ошибкам, из-за которых Sysprep падает.Что делает: Позволяет через веб-интерфейс или официальную утилиту Windows System Image Manager (из пакета ADK) визуально собрать идеальный файл ответов под конкретную редакцию (Pro или LTSC) без единой ошибки в коде.
+
+
+<!-- Winget (Windows Package Manager) / Chocolatey CLIЗачем нужен: Официальный консольный пакетный менеджер от Microsoft (встроен в Win 11, для Win 10 LTSC ставится файлом AppX).Что делает: Позволяет установить весь необходимый софт одной строчкой кода в PowerShell прямо внутри вашей сессии TrustedInstaller. -->
+
+
+Сборник Runtime-библиотек (от barmaley95 или аналогичный)Зачем нужен: Для стабильной работы сред разработки, Docker, старых сисадминских утилит и игр системе жизненно необходимы библиотеки DirectX, Visual C++ (все версии с 2005 по 2022) и .NET Framework. Если их не интегрировать в образ, клиент столкнется с ошибками «отсутствует MSVCP140.dll».Что делает: На этапе режима аудита запускается один компактный .exe или .bat файл, который за 30 секунд тихо и бездиалогово интегрирует абсолютно все существующие библиотеки распространяемых пакетов Visual C++ в систему.
 
 
 
+<!-- Утилита Snappy Driver Installer Origin (SDIO) — Только сетевой пакЗачем нужна: Сборка должна быть универсальной. Вы не можете знать, какая сетевая карта или Wi-Fi адаптер будут на ПК клиента. Если после установки образа у клиента не будет интернета, он не сможет скачать остальные драйверы.Что делает: Перед запуском Sysprep вы можете интегрировать в систему только сетевые драйверы (LAN/WLAN) весом около 1-2 ГБ.Как использовать: Драйверы распаковываются в папку C:\Windows\Drivers\. При первой загрузке ПК клиента Windows автоматически просканирует эту папку, подтянет нужный драйвер сети, а встроенный DISM на этапе Sysprep Generalize очистит неиспользованные хвосты других адаптеров. -->
+
+
+
+ WizTree (или WinDirStat) — Для визуального анализаПочему это нужно: Это инструмент «глаз сисадмина». Перед очисткой старой системы нужно понять, куда уходит место.Что делает: Сканирует весь диск за 2 секунды (работая напрямую с MFT-таблицей файла системы NTFS) и визуально показывает карту диска. Вы мгновенно увидите, если у клиента в скрытой папке лежит забытый образ виртуалки на 100 ГБ или скрытый лог-файл, разросшийся до неприличных размеров.
+
+
+ <!-- RegOrganizer или Registry Life (Portable) — Для сжатия реестраПочему это нужно: За годы работы, установки и удаления софта реестр Windows превращается в «швейцарский сыр» — в нем остаются миллионы пустых веток и битых ключей. Из-за этого падает скорость отклика ОС.Что делает: Проводит глубокий анализ, удаляет хвосты от старых программ и, самое главное, выполняет дефрагментацию/сжатие кустов реестра. После перезагрузки файлы реестра физически уменьшаются в размере, и система начинает считывать их быстрее. -->
+
+
+AdwCleaner (от Malwarebytes) — Для удаления рекламного мусораПочему это нужно: В давно установленной системе почти гарантированно живут рекламные тулбары, скрытые майнеры, угонщики стартовых страниц браузеров и мусорные службы (Adware/PUP), которые не считаются вирусами (Защитник их пропускает), но сильно тормозят ПК.Что делает: За 1 минуту сканирует службы, планировщик и браузеры, вычищая весь этот полувирусный хлам.
